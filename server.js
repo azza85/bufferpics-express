@@ -19,38 +19,44 @@ app.use(bodyParser.json()) // support json encoded bodies
 app.use(bodyParser.urlencoded({	extended: true })) // support encoded bodies
 app.use(allowCrossDomain)
 
+/**
+ *
+ * return buffer profile data
+ *
+ */
 app.get('/api/buffer/profile', function (req, res) {
   var token = req.query.token || 0
 
-  // bufferappProfiles(token, bufferappProfiles_cb)
   bufferappProfiles(token, bufferappProfiles_cb)
   function bufferappProfiles_cb (data) {
     res.contentType('application/json')
     var sendData = JSON.stringify(data)
     var sendReq = sendData
     var cb = req.query.callback
-    console.log('obj', req.query.callback)
-    // if(cb) {
+    console.log('profiles => data to return (%s)', sendData)
     sendReq = cb + '({"data":' + sendData + '})'
-    // }
     res.send(sendReq)
   }
 })
 
+/**
+ *
+ * return buffer auth data.
+ * NOTE: this is a GET request but inside the
+ * function it calls a POST.
+ *
+ */
 app.get('/api/buffer/auth', function (req, res) {
   var token = req.query.token || 0
 
-  // bufferappProfiles(token, bufferappProfiles_cb)
   bufferappAuth(token, bufferappProfiles_cb)
   function bufferappProfiles_cb (data) {
     res.contentType('application/json')
     var sendData = JSON.stringify(data)
     var sendReq = sendData
     var cb = req.query.callback
-    console.log('obj', req.query.callback)
-    // if(cb) {
+    console.log('auth =>  data to return (%s)', sendData)
     sendReq = cb + '({"data":' + sendData + '})'
-    // }
     res.send(sendReq)
   }
 })
@@ -59,15 +65,35 @@ app.get('/api/buffer/auth', function (req, res) {
 app.listen(port)
 console.log('Server started!!! At http://localhost:' + port)
 
+/**
+ *
+ * Get buffer app profile based on access token.
+ * pass in token then run callback function to
+ * return data
+ *
+ * @param {String} token
+ * @return {Element} callback
+ */
+
 function bufferappProfiles (token, callback) {
-  console.log('token', token)
-  // return https.get('https://api.bufferapp.com/1/profiles.json?access_token=' + token, function (response) {})
   return needle.get(config.base_url + '/profiles.json?access_token=' + token, function (err, response) {
+    if (err) {
+      console.log('bufferappProfiles (%s)', JSON.stringify(err))
+    }
     var body = response.body
     callback(body)
   })
 }
 
+/**
+ *
+ * Get buffer app auth based on temp code.
+ * Success will return token to use for user
+ * on other endpoints.
+ *
+ * @param {String} token
+ * @return {Element} callback
+ */
 function bufferappAuth (token, callback) {
   var data = {
     grant_type: config.grant_type,
@@ -81,6 +107,9 @@ function bufferappAuth (token, callback) {
   }
 
   return needle.post(config.base_url + '/oauth2/token.json', data, options, function (err, response) {
+    if (err) {
+      console.log('bufferappProfiles (%s)', JSON.stringify(err))
+    }
     var body = response.body
     callback(body)
   })
