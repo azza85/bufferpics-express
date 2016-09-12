@@ -1,22 +1,27 @@
 var express = require('express')
 var app = express()
-var port = process.env.PORT || 8080
+var port = process.env.PORT || 8888 // 8080
 var needle = require('needle')
 
 var configs = require('./config.js')
 var config = new configs()
 
+/**
+ *
+ * allow requests from another server
+ *
+ */
 var allowCrossDomain = function (req, res, next) {
-  res.header('Access-Control-Allow-Origin', 'localhost:3000')
+  res.header('Access-Control-Allow-Origin', '*')
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE')
-  res.header('Access-Control-Allow-Headers', 'Content-Type')
-
+  res.header('Access-Control-Allow-Credentials', 'true')
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization')
   next()
 }
 
 var bodyParser = require('body-parser')
 app.use(bodyParser.json()) // support json encoded bodies
-app.use(bodyParser.urlencoded({	extended: true })) // support encoded bodies
+app.use(bodyParser.urlencoded({ extended: true })) // support encoded bodies
 app.use(allowCrossDomain)
 
 /**
@@ -48,6 +53,7 @@ app.get('/api/buffer/profile', function (req, res) {
  */
 app.get('/api/buffer/auth', function (req, res) {
   var token = req.query.token || 0
+  console.log('token', token)
 
   bufferappAuth(token, bufferappProfiles_cb)
   function bufferappProfiles_cb (data) {
@@ -59,6 +65,17 @@ app.get('/api/buffer/auth', function (req, res) {
     sendReq = cb + '({"data":' + sendData + '})'
     res.send(sendReq)
   }
+})
+
+app.post('/api/buffer/update', function (req, res) {
+  res.contentType('application/json')
+  console.log('body', res.req.body)
+  console.log('headers', res.req.headers.authorization)
+  var sendData = JSON.stringify('aaa')
+  var sendReq = sendData
+  console.log('auth =>  data to return (%s)', sendData)
+  // sendReq = '({"data":' + sendData + '})'
+  res.send(sendReq)
 })
 
 // start the server
@@ -107,6 +124,25 @@ function bufferappAuth (token, callback) {
   }
 
   return needle.post(config.base_url + '/oauth2/token.json', data, options, function (err, response) {
+    if (err) {
+      console.log('bufferappProfiles (%s)', JSON.stringify(err))
+    }
+    console.log(1114, data, response.body)
+    var body = response.body
+    callback(body)
+  })
+}
+
+/**
+ *
+ * Buffer POST item
+ *
+ * @param {String} token
+ * @return {Element} callback
+ */
+
+function bufferappPostItem (token, callback) {
+  return needle.get(config.base_url + '/profiles.json?access_token=' + token, function (err, response) {
     if (err) {
       console.log('bufferappProfiles (%s)', JSON.stringify(err))
     }
